@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 rand = "0.8"
-halo2curves = { git = "https://github.com/privacy-scaling-explorations/halo2curves"}
+halo2 = { package = "halo2_proofs", git = "https://github.com/privacy-scaling-explorations/halo2", tag = "v2023_04_20" }
