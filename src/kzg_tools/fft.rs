@@ -4,6 +4,12 @@ pub struct Evaluation {
     pub(crate) evaluation: Fr,
 }
 
+impl Evaluation {
+    pub fn new(val: Fr) -> Self {
+        Evaluation { evaluation: val }
+    }
+}
+
 //Calculate exponent of a number as field element.
 pub fn pow(base: Fr, exp: u32) -> Evaluation {
     let mut mul = Fr::one();
