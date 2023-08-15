@@ -6,7 +6,8 @@ use halo2::{
 use rand::thread_rng;
 use std::ops::Mul;
 
-fn trusted_setup(p: Vec<Fr>) -> (Vec<G1>, G2) {
+//Trusted Setup  operation.
+pub fn trusted_setup(p: Vec<Fr>) -> (Vec<G1>, G2) {
     let rng = thread_rng();
     let trusted_s = Fr::random(rng.clone());
     let mut trusted_p = Vec::new();

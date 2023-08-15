@@ -6,7 +6,7 @@ use halo2::{
 };
 
 //Barycentric  operation.
-fn barycentric(p: Vec<Fr>, rou: Fr, num: Fr) -> Fr {
+pub fn barycentric(p: Vec<Fr>, rou: Fr, num: Fr) -> Fr {
     let len = p.len();
     let eval = fft(p, rou);
     let mut right_res = Vec::new();
