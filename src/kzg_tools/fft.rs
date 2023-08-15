@@ -15,7 +15,7 @@ pub fn pow(base: Fr, exp: u32) -> Evaluation {
 }
 
 //FFT operation.
-fn fft(p: Vec<Fr>, rou: Fr) -> Vec<Fr> {
+pub fn fft(p: Vec<Fr>, rou: Fr) -> Vec<Fr> {
     let len = p.len();
     let mut vec = vec![Fr::zero(); len];
 
