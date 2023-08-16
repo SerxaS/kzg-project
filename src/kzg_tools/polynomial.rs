@@ -106,7 +106,7 @@ pub fn div_poly(mut n: Vec<Fr>, d: Vec<Fr>) -> (Vec<Fr>, Vec<Fr>) {
             break;
         }
     }
-    return (q, n);
+    (q, n)
 }
 
 //Polynomial Multiplication.
