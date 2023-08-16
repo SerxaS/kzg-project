@@ -10,6 +10,7 @@ use halo2::{
 };
 use rand::thread_rng;
 
+#[allow(dead_code)]
 fn kzg(p: Vec<Fr>, rou: Fr) -> String {
     let rng = thread_rng();
     let z = Fr::random(rng.clone());
