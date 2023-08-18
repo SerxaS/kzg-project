@@ -6,9 +6,9 @@ use halo2::{
 };
 
 //Barycentric  operation.
-pub(crate) fn barycentric(p: Vec<Fr>, rou: Fr, num: Fr) -> Fr {
-    let len = p.len();
-    let eval = fft(p, rou);
+pub(crate) fn barycentric(polynomial: Vec<Fr>, rou: Fr, num: Fr) -> Fr {
+    let len = polynomial.len();
+    let eval = fft(polynomial, rou);
     let mut right_res = Vec::new();
 
     for (i, j) in eval.iter().enumerate() {

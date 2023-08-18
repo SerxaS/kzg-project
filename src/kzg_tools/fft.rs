@@ -4,8 +4,6 @@ pub struct Evaluation {
     pub(crate) evaluation: Fr,
 }
 
-#[allow(dead_code)]
-
 impl Evaluation {
     pub fn new(val: Fr) -> Self {
         Evaluation { evaluation: val }

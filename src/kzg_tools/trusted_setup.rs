@@ -6,16 +6,22 @@ use halo2::{
 use rand::thread_rng;
 use std::ops::Mul;
 
-pub(crate) fn trusted_setup(p: Vec<Fr>) -> (Vec<G1>, G2) {
+#[derive(Clone)]
+pub struct TrustedSetup {
+    pub s_g1: Vec<G1>,
+    pub s_g2: G2,
+}
+
+pub fn trusted_setup(polynomial: Vec<Fr>) -> TrustedSetup {
     let rng = thread_rng();
     let trusted_s = Fr::random(rng.clone());
-    let mut trusted_p = Vec::new();
+    let mut s_g1 = Vec::new();
     let s_g2 = G2::generator().mul(trusted_s);
 
-    for i in 0..p.len() {
-        let s_g1 = G1::generator().mul(pow(trusted_s, i.try_into().unwrap()).evaluation);
-        trusted_p.push(s_g1);
+    for i in 0..polynomial.len() {
+        let trusted_s_g1 = G1::generator().mul(pow(trusted_s, i.try_into().unwrap()).evaluation);
+        s_g1.push(trusted_s_g1);
     }
 
-    (trusted_p, s_g2)
+    TrustedSetup { s_g1, s_g2 }
 }
