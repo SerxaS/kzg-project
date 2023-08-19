@@ -6,31 +6,31 @@ use halo2::{
 };
 use std::fmt::Display;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) struct Polynomial {
-    coefficients: Vec<u32>,
+    polynomial: Vec<u32>,
 }
 
 impl Polynomial {
-    pub fn new(coefficients: Vec<u32>) -> Polynomial {
-        Polynomial { coefficients }
+    pub fn new(polynomial: Vec<u32>) -> Polynomial {
+        Polynomial { polynomial }
     }
 
     //Evaluates polynomial.
     pub fn eval(&self, val: u32) -> u32 {
         let mut eval = 0;
 
-        for (i, j) in self.coefficients.iter().enumerate() {
+        for (i, j) in self.polynomial.iter().enumerate() {
             eval += j * (val.pow(i.try_into().unwrap()));
         }
         eval
     }
 
-    //Converts polynomial's coefficients to the corresponding field elements.
+    //Converts polynomial to the corresponding field elements.
     pub fn p_to_fr(&self) -> Vec<Fr> {
         let mut vec: Vec<Fr> = Vec::new();
 
-        for i in self.coefficients.iter() {
+        for i in self.polynomial.iter() {
             let p_fr = i;
             let p_fr = Fr::from_u128((*p_fr).into());
             vec.push(p_fr);
@@ -51,7 +51,7 @@ impl Polynomial {
 
     //Calculate required roots of unity.
     pub fn rou(&self) -> Fr {
-        let mut len = self.coefficients.len();
+        let mut len = self.polynomial.len();
         let mut rou = <Fr as PrimeField>::ROOT_OF_UNITY;
         let mut counter = 0;
 
@@ -71,7 +71,7 @@ impl Polynomial {
 impl Display for Polynomial {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let result: Vec<String> = self
-            .coefficients
+            .polynomial
             .iter()
             .enumerate()
             .map(|(i, c)| format!("({:?})x^{}", c, i))
