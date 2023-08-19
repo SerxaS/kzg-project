@@ -109,6 +109,7 @@ pub fn div_poly(mut n: Vec<Fr>, d: Vec<Fr>) -> (Vec<Fr>, Vec<Fr>) {
     (q, n)
 }
 
+#[allow(dead_code)]
 //Polynomial Multiplication.
 pub fn mul_poly(p_left: Vec<Fr>, p_right: Vec<Fr>) -> Vec<Fr> {
     let p_len = p_left.len() + p_right.len() - 1;
