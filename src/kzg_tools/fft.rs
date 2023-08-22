@@ -1,52 +1,37 @@
+///Evaluate polynomial at (degree + 1) points using FFT Algorithm.
+/// I made use of "Fast Fourier Transforms" from
+///https://vitalik.ca/general/2019/05/12/fft.html///
+use super::polynomial::Evaluation;
+use crate::kzg_tools::polynomial::{pow, Polynomial};
 use halo2::halo2curves::bn256::Fr;
 
-pub struct Evaluation {
-    pub(crate) evaluation: Fr,
-}
-
-impl Evaluation {
-    pub fn new(val: Fr) -> Self {
-        Evaluation { evaluation: val }
-    }
-}
-
-//Calculate exponent of a number as field element.
-pub fn pow(base: Fr, exp: u32) -> Evaluation {
-    let mut mul = Fr::one();
-
-    for _ in 0..exp {
-        mul *= base
-    }
-    Evaluation { evaluation: mul }
-}
-
-//FFT operation.
-pub fn fft(p: Vec<Fr>, rou: Fr) -> Vec<Fr> {
-    let len = p.len();
-    let mut vec = vec![Fr::zero(); len];
+pub fn fft(polynomial: Polynomial, rou: &Evaluation) -> Polynomial {
+    let len = polynomial.coeff.len();
+    let mut fft_vec = Polynomial::new(vec![Fr::zero(); len]);
 
     if len == 1 {
-        return p;
+        return polynomial;
     } else {
-        let mut even = Vec::new();
-        let mut odd = Vec::new();
+        let mut even = Polynomial::new(Vec::new());
+        let mut odd = Polynomial::new(Vec::new());
 
-        for (i, j) in p.iter().enumerate() {
+        for (i, j) in polynomial.coeff.iter().enumerate() {
             if i % 2 == 0 {
-                even.push(*j);
+                even.coeff.push(*j);
             } else {
-                odd.push(*j);
+                odd.coeff.push(*j);
             }
         }
 
-        let even_fft = fft(even, rou.square());
-        let odd_fft = fft(odd, rou.square());
+        let even_fft = fft(even, &Evaluation::new(rou.evaluation.square()));
+        let odd_fft = fft(odd, &Evaluation::new(rou.evaluation.square()));
 
         for i in 0..len / 2 {
             let temp_rou = pow(rou, i.try_into().unwrap());
-            vec[i] = even_fft[i].add(&temp_rou.evaluation.mul(&odd_fft[i]));
-            vec[i + len / 2] = even_fft[i].sub(&temp_rou.evaluation.mul(&odd_fft[i]));
+            fft_vec.coeff[i] = even_fft.coeff[i].add(&temp_rou.evaluation.mul(&odd_fft.coeff[i]));
+            fft_vec.coeff[i + len / 2] =
+                even_fft.coeff[i].sub(&temp_rou.evaluation.mul(&odd_fft.coeff[i]));
         }
     }
-    return vec;
+    return fft_vec;
 }

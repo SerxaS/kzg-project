@@ -1,4 +1,3 @@
-use super::fft::pow;
 use core::fmt;
 use halo2::{
     arithmetic::Field,
@@ -6,53 +5,31 @@ use halo2::{
 };
 use std::fmt::Display;
 
-#[derive(Clone)]
-pub(crate) struct Polynomial {
-    polynomial: Vec<u32>,
+#[derive(Debug, Clone)]
+pub struct Polynomial {
+    pub(crate) coeff: Vec<Fr>,
 }
 
 impl Polynomial {
-    pub fn new(polynomial: Vec<u32>) -> Polynomial {
-        Polynomial { polynomial }
-    }
-
-    //Evaluates polynomial.
-    pub fn eval(&self, val: u32) -> u32 {
-        let mut eval = 0;
-
-        for (i, j) in self.polynomial.iter().enumerate() {
-            eval += j * (val.pow(i.try_into().unwrap()));
-        }
-        eval
-    }
-
-    //Converts polynomial to the corresponding field elements.
-    pub fn p_to_fr(&self) -> Vec<Fr> {
-        let mut vec: Vec<Fr> = Vec::new();
-
-        for i in self.polynomial.iter() {
-            let p_fr = i;
-            let p_fr = Fr::from_u128((*p_fr).into());
-            vec.push(p_fr);
-        }
-        vec
+    pub fn new(coeff: Vec<Fr>) -> Self {
+        Self { coeff }
     }
 
     //Evaluates polynomial in the field.
-    pub fn eval_fr(&self, val: Fr) -> Fr {
-        let p_fr = self.p_to_fr();
-        let mut eval = Fr::zero();
+    pub fn eval(&self, val: &Evaluation) -> Evaluation {
+        let mut eval = Evaluation::new(Fr::zero());
 
-        for (i, j) in p_fr.iter().enumerate() {
-            eval += j * pow(val, i.try_into().unwrap()).evaluation
+        for (i, j) in self.coeff.iter().enumerate() {
+            eval.evaluation +=
+                (Evaluation::new(*j).mul(&pow(val, i.try_into().unwrap()))).evaluation
         }
         eval
     }
 
     //Calculate required roots of unity.
-    pub fn rou(&self) -> Fr {
-        let mut len = self.polynomial.len();
-        let mut rou = <Fr as PrimeField>::ROOT_OF_UNITY;
+    pub fn rou(&self) -> Evaluation {
+        let mut len = self.coeff.len();
+        let mut rou = Evaluation::new(<Fr as PrimeField>::ROOT_OF_UNITY);
         let mut counter = 0;
 
         while len / 2 >= 1 {
@@ -61,9 +38,51 @@ impl Polynomial {
         }
 
         for _ in 0..(28 - counter) {
-            rou = rou.square();
+            rou.evaluation = rou.evaluation.square();
         }
         rou
+    }
+
+    //Polynomial Long Division.
+    pub fn div_poly(&mut self, den: Self) -> (Self, Self) {
+        if den.coeff.len() > self.coeff.len() {
+            return (Self::new(vec![Fr::zero()]), self.clone());
+        }
+
+        let diff = self.coeff.len() - den.coeff.len();
+        let mut q = Polynomial::new(vec![Fr::zero(); diff + 1]);
+
+        for i in (0..q.coeff.len()).rev() {
+            let n_idx = self.coeff.len() - 1 - diff + i;
+            let inv_d = den.coeff[den.coeff.len() - 1].invert().unwrap();
+            q.coeff[i] = self.coeff[n_idx].mul(&inv_d);
+
+            for j in 0..den.coeff.len() {
+                self.coeff[n_idx - j] -= q.coeff[i].mul(&den.coeff[den.coeff.len() - j - 1]);
+            }
+        }
+
+        for i in (1..self.coeff.len()).rev() {
+            if self.coeff[i] == 0.into() {
+                self.coeff.pop();
+            } else {
+                break;
+            }
+        }
+        (q, self.clone())
+    }
+
+    //Polynomial Multiplication.
+    pub fn mul_poly(&self, rhs: Self) -> Self {
+        let p_len = self.coeff.len() + rhs.coeff.len() - 1;
+        let mut p_res = Polynomial::new(vec![Fr::zero(); p_len]);
+
+        for i in 0..self.coeff.len() {
+            for j in 0..rhs.coeff.len() {
+                p_res.coeff[i + j] += self.coeff[i] * rhs.coeff[j];
+            }
+        }
+        p_res
     }
 }
 
@@ -71,7 +90,7 @@ impl Polynomial {
 impl Display for Polynomial {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let result: Vec<String> = self
-            .polynomial
+            .coeff
             .iter()
             .enumerate()
             .map(|(i, c)| format!("({:?})x^{}", c, i))
@@ -80,45 +99,83 @@ impl Display for Polynomial {
     }
 }
 
-//Polynomial Long Division.
-pub fn div_poly(mut n: Vec<Fr>, d: Vec<Fr>) -> (Vec<Fr>, Vec<Fr>) {
-    if d.len() > n.len() {
-        return (vec![Fr::zero()], n);
-    }
-
-    let diff = n.len() - d.len();
-    let mut q: Vec<Fr> = vec![Fr::zero(); diff + 1];
-
-    for i in (0..q.len()).rev() {
-        let n_idx = n.len() - 1 - diff + i;
-        let inv_d = d[d.len() - 1].invert().unwrap();
-        q[i] = n[n_idx].mul(&inv_d);
-
-        for j in 0..d.len() {
-            n[n_idx - j] -= q[i].mul(&d[d.len() - j - 1]);
-        }
-    }
-
-    for i in (1..n.len()).rev() {
-        if n[i] == 0.into() {
-            n.pop();
-        } else {
-            break;
-        }
-    }
-    (q, n)
+pub struct Evaluation {
+    pub(crate) evaluation: Fr,
 }
 
-#[allow(dead_code)]
-//Polynomial Multiplication.
-pub fn mul_poly(p_left: Vec<Fr>, p_right: Vec<Fr>) -> Vec<Fr> {
-    let p_len = p_left.len() + p_right.len() - 1;
-    let mut p_res = vec![Fr::zero(); p_len];
-
-    for i in 0..p_left.len() {
-        for j in 0..p_right.len() {
-            p_res[i + j] += p_left[i] * p_right[j];
-        }
+impl Evaluation {
+    pub fn new(evaluation: Fr) -> Self {
+        Self { evaluation }
     }
-    p_res
+
+    pub fn add(&self, rhs: Self) -> Self {
+        Evaluation::new(self.evaluation + rhs.evaluation)
+    }
+
+    pub fn sub(&self, rhs: Self) -> Self {
+        Evaluation::new(self.evaluation - rhs.evaluation)
+    }
+
+    pub fn mul(&self, rhs: &Self) -> Self {
+        Evaluation::new(self.evaluation * rhs.evaluation)
+    }
+
+    pub fn div(&self, divider: Self) -> Self {
+        Evaluation::new(self.evaluation * divider.evaluation.invert().unwrap())
+    }
+}
+
+//Calculate exponent of a number as field element.
+pub fn pow(base: &Evaluation, exp: usize) -> Evaluation {
+    let mut mul = Fr::one();
+
+    for _ in 0..exp {
+        mul *= base.evaluation
+    }
+    Evaluation { evaluation: mul }
+}
+
+pub struct PolynomialU32 {
+    pub(crate) coeff: Vec<u32>,
+}
+
+impl PolynomialU32 {
+    pub fn new(coeff: Vec<u32>) -> Self {
+        Self { coeff }
+    }
+
+    //Evaluates polynomial.
+    pub fn eval(&self, val: u32) -> u32 {
+        let mut eval = 0;
+
+        for (i, j) in self.coeff.iter().enumerate() {
+            eval += j * (val.pow(i.try_into().unwrap()));
+        }
+        eval
+    }
+
+    //Converts polynomial to the corresponding field elements.
+    pub fn p_to_fr(&self) -> Polynomial {
+        let mut vec = Polynomial::new(Vec::new());
+
+        for i in self.coeff.iter() {
+            let p_fr = i;
+            let p_fr = Fr::from_u128((*p_fr).into());
+            vec.coeff.push(p_fr);
+        }
+        vec
+    }
+}
+
+//Shows polynomial in the string form.
+impl Display for PolynomialU32 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let result: Vec<String> = self
+            .coeff
+            .iter()
+            .enumerate()
+            .map(|(i, c)| format!("({:?})x^{}", c, i))
+            .collect();
+        write!(f, "{}", result.join(" + "))
+    }
 }

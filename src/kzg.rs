@@ -1,17 +1,11 @@
 use crate::kzg_tools::{
-    barycentric::barycentric,
-    polynomial::{div_poly, Polynomial},
+    polynomial::{Evaluation, Polynomial},
     trusted_setup::TrustedSetup,
 };
-use halo2::{
-    arithmetic::Field,
-    halo2curves::{
-        bn256::{pairing, Fr, G1Affine, G1, G2},
-        group::Curve,
-        pairing::Engine,
-    },
+use halo2::halo2curves::{
+    bn256::{pairing, Fr, G1Affine, G1, G2},
+    group::Curve,
 };
-use rand::thread_rng;
 
 struct Proof {
     polynomial_commitment: G1Affine,
@@ -19,32 +13,31 @@ struct Proof {
     y: Fr,
 }
 
-fn prover(p_committed: Polynomial, z: Fr, trusted_setup: TrustedSetup) -> Proof {
-    let y = Polynomial::eval_fr(&p_committed, z);
-    let p_fr = Polynomial::p_to_fr(&p_committed);
-    let mut num: Vec<Fr> = Vec::new();
-    let num_sub = p_fr[0] - (y);
-    num.push(num_sub);
+fn prover(p_committed: Polynomial, z: Evaluation, trusted_setup: TrustedSetup) -> Proof {
+    let y = Polynomial::eval(&p_committed, &z);
+    let mut num: Polynomial = Polynomial::new(Vec::new());
+    let num_sub = p_committed.coeff[0] - (y.evaluation);
+    num.coeff.push(num_sub);
 
-    for i in p_fr.iter().skip(1) {
-        num.push(*i);
+    for i in p_committed.coeff.iter().skip(1) {
+        num.coeff.push(*i);
     }
 
-    let mut den: Vec<Fr> = Vec::new();
-    den.push(z.neg());
-    den.push(Fr::one());
+    let mut den: Polynomial = Polynomial::new(Vec::new());
+    den.coeff.push(z.evaluation.neg());
+    den.coeff.push(Fr::one());
 
-    let q_x = div_poly(num, den).0;
+    let q_x = Polynomial::div_poly(&mut num, den).0;
     let mut pi = G1::generator() * Fr::zero();
 
-    for i in 0..q_x.len() {
-        pi += trusted_setup.s_g1[i] * q_x[i];
+    for i in 0..q_x.coeff.len() {
+        pi += trusted_setup.s_g1[i] * q_x.coeff[i];
     }
 
     let mut c = G1::generator() * Fr::zero();
 
-    for i in 0..p_fr.len() {
-        c += trusted_setup.s_g1[i] * p_fr[i];
+    for i in 0..p_committed.coeff.len() {
+        c += trusted_setup.s_g1[i] * p_committed.coeff[i];
     }
 
     let c_aff = c.to_affine();
@@ -53,7 +46,7 @@ fn prover(p_committed: Polynomial, z: Fr, trusted_setup: TrustedSetup) -> Proof 
     let proof = Proof {
         polynomial_commitment: c_aff,
         quotient_commitment: pi_aff,
-        y,
+        y: y.evaluation,
     };
     proof
 }
@@ -75,56 +68,24 @@ fn verifier(proof: Proof, z: Fr, trusted_setup: TrustedSetup) -> bool {
 #[cfg(test)]
 mod tests {
     use crate::kzg::{prover, verifier, Fr};
-    use crate::kzg_tools::{
-        barycentric::barycentric,
-        fft::fft,
-        polynomial::{self, div_poly, mul_poly},
-        trusted_setup::trusted_setup,
-    };
+    use crate::kzg_tools::polynomial::Evaluation;
+    use crate::kzg_tools::{polynomial::Polynomial, trusted_setup::trusted_setup};
     use halo2::arithmetic::Field;
+    use halo2::halo2curves::ff::PrimeField;
     use rand::thread_rng;
 
     #[test]
     fn kzg_test() {
-        let p_committed = polynomial::Polynomial::new(vec![1, 2, 3, 4, 5, 6, 7, 8]);
-        let rou = p_committed.clone().rou();
-        let p_fr = &p_committed.p_to_fr();
-
-        //Evaluate a polynomial
-        println!("{:?}\n", &p_committed.eval(16));
-
-        //Evaluate a polynomial without FFT
-        println!("{:?}\n", &p_committed.eval_fr(rou));
-
-        //Evaluate a polynomial using FFT
-        println!("{:?}\n", fft(p_fr.clone(), rou));
-
-        let p_numerator = polynomial::Polynomial::new(vec![3, 2, 1, 6, 7, 9]);
-        let p_denominator = polynomial::Polynomial::new(vec![2, 1, 5, 6]);
-        println!("{} ÷ {}\n", p_numerator, p_denominator);
-
-        //Divide two polynomials.
-        //Numerator = 3x^0 + 2x^1 + 1x^2 denominator = 2x^0 + 1x^1 quotient = 0 + 1x and remainder = 3
-        println!(
-            "{:?}\n",
-            div_poly(p_numerator.p_to_fr(), p_denominator.p_to_fr())
-        );
-
-        //Multiplying two polynomials.
-        //First polynomial = 3x^0 + 2x^1 + 1x^2 second polynomial = 2x^0 + 1x^1 result = 6 + 7x + 4x^2 + 1x^3
-        println!(
-            "{:?}\n",
-            mul_poly(p_numerator.p_to_fr(), p_denominator.p_to_fr())
-        );
-
-        //Evaluate polynomial using barycentric
-        println!("{:?}\n", barycentric(p_fr.clone(), rou, 16.into()));
-
-        //KZG commitment
+        let p_committed = Polynomial::new(vec![
+            Fr::from_u128(16),
+            Fr::from_u128(2),
+            Fr::from_u128(5),
+            Fr::from_u128(12),
+        ]);
         let rng = thread_rng();
         let z = Fr::random(rng.clone());
-        let trusted_setup = trusted_setup(p_fr.to_vec());
-        let prover = prover(p_committed, z, trusted_setup.clone());
+        let trusted_setup = trusted_setup(p_committed.clone());
+        let prover = prover(p_committed, Evaluation::new(z), trusted_setup.clone());
         let verifier = verifier(prover, z, trusted_setup);
         assert!(verifier);
     }
