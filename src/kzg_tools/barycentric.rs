@@ -1,34 +1,39 @@
-use super::fft::pow;
+///Taking a set of evaluations of a polynomial and
+///using that directly to compute an evaluation at a different point.
+///I made use of "A quick barycentric evaluation tutorial" from
+///https://hackmd.io/@vbuterin/barycentric_evaluation"
+use super::polynomial::{pow, Evaluation, Polynomial};
 use crate::kzg_tools::fft::fft;
 use halo2::{
     arithmetic::Field,
     halo2curves::{bn256::Fr, ff::PrimeField},
 };
 
-//Barycentric  operation.
-pub(crate) fn barycentric(polynomial: Vec<Fr>, rou: Fr, num: Fr) -> Fr {
-    let len = polynomial.len();
+pub(crate) fn barycentric(polynomial: Polynomial, rou: Fr, x: Fr) -> Evaluation {
+    let len = polynomial.coeff.len();
+    //Evaluate polynomial at (degree + 1) points using FFT Algorithm.
     let eval = fft(polynomial, rou);
-    let mut right_res = Vec::new();
+    let mut right_res = Polynomial::new(Vec::new());
 
-    for (i, j) in eval.iter().enumerate() {
-        let pow = pow(rou, i.try_into().unwrap());
-        let j_mul_pow = j.mul(&pow.evaluation);
-        let num_sub_pow = num.sub(&pow.evaluation);
-        let divide_res = j_mul_pow.mul(&num_sub_pow.invert().unwrap());
-        right_res.push(divide_res);
+    for (i, j) in eval.coeff.iter().enumerate() {
+        //Right side of equation from paper.
+        let w_i = pow(&Evaluation::new(rou), i);
+        let y_i_mul_w_i = Evaluation::new(*j).mul(&w_i);
+        let divide_res = y_i_mul_w_i.div(Evaluation::new(x).sub(w_i));
+        right_res.coeff.push(divide_res.evaluation);
     }
 
-    let mut sum_res = Fr::zero();
+    let mut sum_res = Evaluation::new(Fr::zero());
 
-    for i in right_res {
-        sum_res += i;
+    for i in right_res.coeff {
+        sum_res.evaluation += i;
     }
 
-    let pow_num = pow(num, len.try_into().unwrap()).evaluation.sub(&Fr::one());
-    let len_fr = Fr::from_u128(len.try_into().unwrap());
-    let left_res = pow_num.mul(&len_fr.invert().unwrap());
-    let res = left_res.mul(&sum_res);
+    //Left side of equation from paper.
+    let x_n = pow(&Evaluation::new(x), len).sub(Evaluation::new(Fr::one()));
+    let n = Evaluation::new(Fr::from_u128(len.try_into().unwrap()));
+    let left_res = x_n.mul(&Evaluation::new(n.evaluation.invert().unwrap()));
+    let res = left_res.mul(&Evaluation::new(sum_res.evaluation));
 
     res
 }
