@@ -10,12 +10,12 @@ use halo2::halo2curves::{
 struct Proof {
     polynomial_commitment: G1Affine,
     quotient_commitment: G1Affine,
-    y: Fr,
+    y: Evaluation,
 }
 
-fn prover(p_committed: Polynomial, z: Evaluation, trusted_setup: TrustedSetup) -> Proof {
-    let y = Polynomial::eval(&p_committed, &z);
-    let mut num: Polynomial = Polynomial::new(Vec::new());
+fn prover(p_committed: Polynomial, z: Fr, trusted_setup: TrustedSetup) -> Proof {
+    let y = Polynomial::eval(&p_committed, &Evaluation::new(z));
+    let mut num: Polynomial = Polynomial::new(vec![]);
     let num_sub = p_committed.coeff[0] - (y.evaluation);
     num.coeff.push(num_sub);
 
@@ -23,8 +23,8 @@ fn prover(p_committed: Polynomial, z: Evaluation, trusted_setup: TrustedSetup) -
         num.coeff.push(*i);
     }
 
-    let mut den: Polynomial = Polynomial::new(Vec::new());
-    den.coeff.push(z.evaluation.neg());
+    let mut den: Polynomial = Polynomial::new(vec![]);
+    den.coeff.push(z.neg());
     den.coeff.push(Fr::one());
 
     let q_x = Polynomial::div_poly(&mut num, den).0;
@@ -46,13 +46,13 @@ fn prover(p_committed: Polynomial, z: Evaluation, trusted_setup: TrustedSetup) -
     let proof = Proof {
         polynomial_commitment: c_aff,
         quotient_commitment: pi_aff,
-        y: y.evaluation,
+        y,
     };
     proof
 }
 
 fn verifier(proof: Proof, z: Fr, trusted_setup: TrustedSetup) -> bool {
-    let y_g1_aff = (G1::generator() * proof.y).to_affine();
+    let y_g1_aff = (G1::generator() * proof.y.evaluation).to_affine();
     let c_y = (proof.polynomial_commitment - y_g1_aff).to_affine();
     let z_g2 = G2::generator() * z;
     let s_z = trusted_setup.s_g2 - z_g2;
@@ -68,7 +68,6 @@ fn verifier(proof: Proof, z: Fr, trusted_setup: TrustedSetup) -> bool {
 #[cfg(test)]
 mod tests {
     use crate::kzg::{prover, verifier, Fr};
-    use crate::kzg_tools::polynomial::Evaluation;
     use crate::kzg_tools::{polynomial::Polynomial, trusted_setup::trusted_setup};
     use halo2::arithmetic::Field;
     use halo2::halo2curves::ff::PrimeField;
@@ -85,7 +84,7 @@ mod tests {
         let rng = thread_rng();
         let z = Fr::random(rng.clone());
         let trusted_setup = trusted_setup(p_committed.clone());
-        let prover = prover(p_committed, Evaluation::new(z), trusted_setup.clone());
+        let prover = prover(p_committed, z, trusted_setup.clone());
         let verifier = verifier(prover, z, trusted_setup);
         assert!(verifier);
     }

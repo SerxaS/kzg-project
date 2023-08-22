@@ -16,7 +16,7 @@ pub(crate) fn barycentric(polynomial: Polynomial, rou: Evaluation, x: Evaluation
     let mut right_res = Polynomial::new(Vec::new());
 
     for (i, j) in eval.coeff.iter().enumerate() {
-        //Right side of equaition from paper.
+        //Right side of equation from paper.
         let w_i = pow(&rou, i);
         let y_i_mul_w_i = Evaluation::new(*j).mul(&w_i);
         let divide_res = y_i_mul_w_i.div(x.sub(w_i));
@@ -29,7 +29,7 @@ pub(crate) fn barycentric(polynomial: Polynomial, rou: Evaluation, x: Evaluation
         sum_res.evaluation += i;
     }
 
-    //Left side of equaition from paper.
+    //Left side of equation from paper.
     let x_n = pow(&x, len).sub(Evaluation::new(Fr::one()));
     let n = Evaluation::new(Fr::from_u128(len.try_into().unwrap()));
     let left_res = x_n.mul(&Evaluation::new(n.evaluation.invert().unwrap()));
