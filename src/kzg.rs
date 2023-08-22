@@ -10,7 +10,7 @@ use halo2::halo2curves::{
 struct Proof {
     polynomial_commitment: G1Affine,
     quotient_commitment: G1Affine,
-    y: Fr,
+    y: Evaluation,
 }
 
 fn prover(p_committed: Polynomial, z: Evaluation, trusted_setup: TrustedSetup) -> Proof {
