@@ -14,8 +14,8 @@ struct Proof {
 }
 
 fn prover(p_committed: Polynomial, z: Fr, trusted_setup: TrustedSetup) -> Proof {
-    let y = Polynomial::eval(&p_committed, &Evaluation::new(z));
-    let mut num: Polynomial = Polynomial::new(vec![]);
+    let y = Polynomial::eval(&p_committed, z);
+    let mut num: Polynomial = Polynomial::new(Vec::new());
     let num_sub = p_committed.coeff[0] - (y.evaluation);
     num.coeff.push(num_sub);
 
@@ -23,9 +23,9 @@ fn prover(p_committed: Polynomial, z: Fr, trusted_setup: TrustedSetup) -> Proof 
         num.coeff.push(*i);
     }
 
-    let mut den: Polynomial = Polynomial::new(vec![]);
-    den.coeff.push(z.neg());
-    den.coeff.push(Fr::one());
+    let mut den = Vec::new();
+    den.push(z.neg());
+    den.push(Fr::one());
 
     let q_x = Polynomial::div_poly(&mut num, den).0;
     let mut pi = G1::generator() * Fr::zero();

@@ -16,14 +16,14 @@ impl Polynomial {
     }
 
     //Evaluates polynomial in the field.
-    pub fn eval(&self, val: &Evaluation) -> Evaluation {
-        let mut eval = Evaluation::new(Fr::zero());
+    pub fn eval(&self, val: Fr) -> Evaluation {
+        let mut eval = Fr::zero();
 
         for (i, j) in self.coeff.iter().enumerate() {
-            eval.evaluation +=
-                (Evaluation::new(*j).mul(&pow(val, i.try_into().unwrap()))).evaluation
+            eval += (Evaluation::new(*j).mul(&pow(&Evaluation::new(val), i.try_into().unwrap())))
+                .evaluation
         }
-        eval
+        Evaluation::new(eval)
     }
 
     //Calculate required roots of unity.
@@ -44,21 +44,21 @@ impl Polynomial {
     }
 
     //Polynomial Long Division.
-    pub fn div_poly(&mut self, den: Self) -> (Self, Self) {
-        if den.coeff.len() > self.coeff.len() {
+    pub fn div_poly(&mut self, den: Vec<Fr>) -> (Self, Self) {
+        if den.len() > self.coeff.len() {
             return (Self::new(vec![Fr::zero()]), self.clone());
         }
 
-        let diff = self.coeff.len() - den.coeff.len();
+        let diff = self.coeff.len() - den.len();
         let mut q = Polynomial::new(vec![Fr::zero(); diff + 1]);
 
         for i in (0..q.coeff.len()).rev() {
             let n_idx = self.coeff.len() - 1 - diff + i;
-            let inv_d = den.coeff[den.coeff.len() - 1].invert().unwrap();
+            let inv_d = den[den.len() - 1].invert().unwrap();
             q.coeff[i] = self.coeff[n_idx].mul(&inv_d);
 
-            for j in 0..den.coeff.len() {
-                self.coeff[n_idx - j] -= q.coeff[i].mul(&den.coeff[den.coeff.len() - j - 1]);
+            for j in 0..den.len() {
+                self.coeff[n_idx - j] -= q.coeff[i].mul(&den[den.len() - j - 1]);
             }
         }
 
@@ -73,13 +73,13 @@ impl Polynomial {
     }
 
     //Polynomial Multiplication.
-    pub fn mul_poly(&self, rhs: Self) -> Self {
-        let p_len = self.coeff.len() + rhs.coeff.len() - 1;
+    pub fn mul_poly(&self, rhs: Vec<Fr>) -> Self {
+        let p_len = self.coeff.len() + rhs.len() - 1;
         let mut p_res = Polynomial::new(vec![Fr::zero(); p_len]);
 
         for i in 0..self.coeff.len() {
-            for j in 0..rhs.coeff.len() {
-                p_res.coeff[i + j] += self.coeff[i] * rhs.coeff[j];
+            for j in 0..rhs.len() {
+                p_res.coeff[i + j] += self.coeff[i] * rhs[j];
             }
         }
         p_res

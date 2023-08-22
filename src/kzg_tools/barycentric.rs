@@ -9,17 +9,17 @@ use halo2::{
     halo2curves::{bn256::Fr, ff::PrimeField},
 };
 
-pub(crate) fn barycentric(polynomial: Polynomial, rou: Evaluation, x: Evaluation) -> Evaluation {
+pub(crate) fn barycentric(polynomial: Polynomial, rou: Fr, x: Fr) -> Evaluation {
     let len = polynomial.coeff.len();
     //Evaluate polynomial at (degree + 1) points using FFT Algorithm.
-    let eval = fft(polynomial, &rou);
+    let eval = fft(polynomial, rou);
     let mut right_res = Polynomial::new(Vec::new());
 
     for (i, j) in eval.coeff.iter().enumerate() {
         //Right side of equation from paper.
-        let w_i = pow(&rou, i);
+        let w_i = pow(&Evaluation::new(rou), i);
         let y_i_mul_w_i = Evaluation::new(*j).mul(&w_i);
-        let divide_res = y_i_mul_w_i.div(x.sub(w_i));
+        let divide_res = y_i_mul_w_i.div(Evaluation::new(x).sub(w_i));
         right_res.coeff.push(divide_res.evaluation);
     }
 
@@ -30,7 +30,7 @@ pub(crate) fn barycentric(polynomial: Polynomial, rou: Evaluation, x: Evaluation
     }
 
     //Left side of equation from paper.
-    let x_n = pow(&x, len).sub(Evaluation::new(Fr::one()));
+    let x_n = pow(&Evaluation::new(x), len).sub(Evaluation::new(Fr::one()));
     let n = Evaluation::new(Fr::from_u128(len.try_into().unwrap()));
     let left_res = x_n.mul(&Evaluation::new(n.evaluation.invert().unwrap()));
     let res = left_res.mul(&Evaluation::new(sum_res.evaluation));
