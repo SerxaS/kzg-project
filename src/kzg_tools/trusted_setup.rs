@@ -12,6 +12,9 @@ pub struct TrustedSetup {
     pub s_g2: G2,
 }
 
+///Using an MPC setup(Trusted Setup), the secret s is generated, and using this secret value,
+///two sets will be distributed publicly, one for [s^i]_1, and one for [s^i]_2 .
+///The secret s is then discarded forever.
 pub fn trusted_setup(polynomial: Polynomial) -> TrustedSetup {
     let rng = thread_rng();
     let trusted_s = Fr::random(rng.clone());

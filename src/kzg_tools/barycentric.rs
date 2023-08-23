@@ -1,5 +1,3 @@
-///Taking a set of evaluations of a polynomial and
-///using that directly to compute an evaluation at a different point.
 ///I made use of "A quick barycentric evaluation tutorial" from
 ///https://hackmd.io/@vbuterin/barycentric_evaluation"
 use super::polynomial::{pow, Evaluation, Polynomial};
@@ -9,6 +7,8 @@ use halo2::{
     halo2curves::{bn256::Fr, ff::PrimeField},
 };
 
+///Taking a set of evaluations of a polynomial and
+///using that directly to compute an evaluation at a different point.
 pub(crate) fn barycentric(polynomial: Polynomial, rou: Fr, x: Fr) -> Evaluation {
     let len = polynomial.coeff.len();
     //Evaluate polynomial at (degree + 1) points using FFT Algorithm.
