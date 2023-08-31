@@ -16,25 +16,12 @@ impl Polynomial {
         Self { coeff }
     }
 
-    ///Takes degree of polynomial and creates a polynomial with random coeefficients.
-    pub fn create_polynomial(degree: u32) -> Self {
-        let rng = thread_rng();
-        let mut random_coeff = Polynomial::new(Vec::new());
-
-        for _ in 0..(degree + 1) {
-            let random_num = Fr::random(rng.clone());
-            random_coeff.coeff.push(random_num)
-        }
-        random_coeff
-    }
-
     ///Evaluates polynomial in the field.
     pub fn eval(&self, val: Fr) -> Evaluation {
         let mut eval = Fr::zero();
 
         for (i, j) in self.coeff.iter().enumerate() {
-            eval += (Evaluation::new(*j).mul(&pow(&Evaluation::new(val), i.try_into().unwrap())))
-                .evaluation
+            eval += (Evaluation::new(*j).mul(&pow(val, i.try_into().unwrap()))).evaluation
         }
         Evaluation::new(eval)
     }
@@ -56,22 +43,66 @@ impl Polynomial {
         rou
     }
 
-    ///Polynomial Long Division.
+    ///Polynomial addition.
+    pub fn add_poly(&self, rhs: Vec<Fr>) -> Self {
+        let mut len = 0;
+
+        if self.coeff.len() >= rhs.len() {
+            len += self.coeff.len();
+        } else {
+            len += rhs.len();
+        }
+
+        let mut sum_poly = Polynomial::new(vec![Fr::zero(); len]);
+
+        for (i, _) in self.coeff.iter().enumerate() {
+            sum_poly.coeff[i] += self.coeff[i];
+        }
+
+        for (i, _) in rhs.iter().enumerate() {
+            sum_poly.coeff[i] += rhs[i];
+        }
+        sum_poly
+    }
+
+    ///Polynomial subtraction.
+    pub fn sub_poly(&self, rhs: Vec<Fr>) -> Self {
+        let mut len = 0;
+
+        if self.coeff.len() >= rhs.len() {
+            len += self.coeff.len();
+        } else {
+            len += rhs.len();
+        }
+
+        let mut sub_poly = Polynomial::new(vec![Fr::zero(); len]);
+
+        for (i, _) in self.coeff.iter().enumerate() {
+            sub_poly.coeff[i] += self.coeff[i];
+        }
+
+        for (i, _) in rhs.iter().enumerate() {
+            sub_poly.coeff[i] -= rhs[i];
+        }
+        sub_poly
+    }
+
+    ///Polynomial long division.
     pub fn div_poly(&mut self, den: Vec<Fr>) -> (Self, Self) {
         if den.len() > self.coeff.len() {
             return (Self::new(vec![Fr::zero()]), self.clone());
         }
 
         let diff = self.coeff.len() - den.len();
-        let mut q = Polynomial::new(vec![Fr::zero(); diff + 1]);
+        let mut quotient = Polynomial::new(vec![Fr::zero(); diff + 1]);
 
-        for i in (0..q.coeff.len()).rev() {
+        for i in (0..quotient.coeff.len()).rev() {
             let n_idx = self.coeff.len() - 1 - diff + i;
             let inv_d = den[den.len() - 1].invert().unwrap();
-            q.coeff[i] = self.coeff[n_idx].mul(&inv_d);
+            quotient.coeff[i] = self.coeff[n_idx].mul(&inv_d);
 
             for j in 0..den.len() {
-                self.coeff[n_idx - j] -= q.coeff[i].mul(&den[den.len() - j - 1]);
+                self.coeff[n_idx - j] -= quotient.coeff[i].mul(&den[den.len() - j - 1]);
             }
         }
 
@@ -82,20 +113,77 @@ impl Polynomial {
                 break;
             }
         }
-        (q, self.clone())
+
+        let remainder = self.clone();
+        (quotient, remainder)
     }
 
-    ///Polynomial Multiplication.
+    ///Polynomial multiplication.
     pub fn mul_poly(&self, rhs: Vec<Fr>) -> Self {
         let p_len = self.coeff.len() + rhs.len() - 1;
-        let mut p_res = Polynomial::new(vec![Fr::zero(); p_len]);
+        let mut mul_poly = Polynomial::new(vec![Fr::zero(); p_len]);
 
         for i in 0..self.coeff.len() {
             for j in 0..rhs.len() {
-                p_res.coeff[i + j] += self.coeff[i] * rhs[j];
+                mul_poly.coeff[i + j] += self.coeff[i] * rhs[j];
             }
         }
-        p_res
+        mul_poly
+    }
+
+    ///Takes degree of polynomial and creates a polynomial with random coefficients.
+    pub fn create_polynomial(degree: u32) -> Self {
+        let rng = thread_rng();
+        let mut random_coeff = Polynomial::new(Vec::new());
+
+        for _ in 0..(degree + 1) {
+            let random_num = Fr::random(rng.clone());
+            random_coeff.coeff.push(random_num)
+        }
+        random_coeff
+    }
+
+    ///Evaluate committed polynomial at determined number of points(signatures).
+    pub fn eval_of_z_points(&self, k_points: u32) -> (Self, Self) {
+        let rng = thread_rng();
+        let mut z_points = Polynomial::new(Vec::new());
+        let mut y_points = Polynomial::new(Vec::new());
+
+        for _ in 0..k_points {
+            let random_num = Fr::random(rng.clone());
+            let eval = Polynomial::eval(&self, random_num);
+            y_points.coeff.push(eval.evaluation);
+            z_points.coeff.push(random_num);
+        }
+        (z_points, y_points)
+    }
+
+    ///Lagrange Interpolation Method.  
+    pub fn lagrange(&self, eval_of_z_points: (Self, Self), k_points: u32) -> Self {
+        let mut interpolate_polynomial = Polynomial::new(Vec::new());
+
+        for i in 0..eval_of_z_points.0.coeff.len() {
+            let numerator = Polynomial::new(vec![Fr::one()]);
+            let denominator = Polynomial::new(vec![Fr::one()]);
+            let mut term = Polynomial::new(vec![eval_of_z_points.1.coeff[i]]);
+
+            for j in 0..eval_of_z_points.0.coeff.len() {
+                if j != i {
+                    let mut num = numerator.mul_poly(
+                        Polynomial::new(vec![eval_of_z_points.0.coeff[j].neg(), Fr::one()]).coeff,
+                    );
+                    let den = denominator.mul_poly(
+                        Polynomial::new(vec![
+                            eval_of_z_points.0.coeff[i] - eval_of_z_points.0.coeff[j],
+                        ])
+                        .coeff,
+                    );
+                    term = term.mul_poly((num.div_poly(den.coeff).0).coeff);
+                }
+            }
+            interpolate_polynomial = term.add_poly(interpolate_polynomial.coeff);
+        }
+        interpolate_polynomial
     }
 }
 
@@ -139,11 +227,11 @@ impl Evaluation {
 }
 
 ///Calculate exponent of a number as field element.
-pub fn pow(base: &Evaluation, exp: usize) -> Evaluation {
+pub fn pow(base: Fr, exp: usize) -> Evaluation {
     let mut mul = Fr::one();
 
     for _ in 0..exp {
-        mul *= base.evaluation
+        mul *= base
     }
     Evaluation { evaluation: mul }
 }

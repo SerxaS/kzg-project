@@ -1,5 +1,3 @@
-///I made use of "A quick barycentric evaluation tutorial" from
-///https://hackmd.io/@vbuterin/barycentric_evaluation"
 use super::polynomial::{pow, Evaluation, Polynomial};
 use crate::kzg_tools::fft::fft;
 use halo2::{
@@ -16,8 +14,8 @@ pub(crate) fn barycentric(polynomial: Polynomial, rou: Fr, x: Fr) -> Evaluation 
     let mut right_res = Polynomial::new(Vec::new());
 
     for (i, j) in eval.coeff.iter().enumerate() {
-        //Right side of equation from paper.
-        let w_i = pow(&Evaluation::new(rou), i);
+        //Right side of equation.
+        let w_i = pow(rou, i);
         let y_i_mul_w_i = Evaluation::new(*j).mul(&w_i);
         let divide_res = y_i_mul_w_i.div(Evaluation::new(x).sub(w_i));
         right_res.coeff.push(divide_res.evaluation);
@@ -29,11 +27,10 @@ pub(crate) fn barycentric(polynomial: Polynomial, rou: Fr, x: Fr) -> Evaluation 
         sum_res.evaluation += i;
     }
 
-    //Left side of equation from paper.
-    let x_n = pow(&Evaluation::new(x), len).sub(Evaluation::new(Fr::one()));
+    //Left side of equation.
+    let x_n = pow(x, len).sub(Evaluation::new(Fr::one()));
     let n = Evaluation::new(Fr::from_u128(len.try_into().unwrap()));
     let left_res = x_n.mul(&Evaluation::new(n.evaluation.invert().unwrap()));
     let res = left_res.mul(&Evaluation::new(sum_res.evaluation));
-
     res
 }
