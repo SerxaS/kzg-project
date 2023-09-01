@@ -27,8 +27,13 @@ fn prover(
     p_committed: Polynomial,
     trusted_setup: TrustedSetup,
     z_points: Polynomial,
-    y_points: Polynomial,
 ) -> MultiProof {
+    let mut y_points = Polynomial::new(Vec::new());
+
+    for i in 0..z_points.coeff.len() {
+        let eval = Polynomial::eval(&p_committed, z_points.coeff[i]);
+        y_points.coeff.push(eval.evaluation);
+    }
     let interpolation_polynomial = Polynomial::lagrange(&p_committed, z_points.clone(), y_points);
     let mut zero_polynomial = Polynomial::new(vec![Fr::one()]);
 
@@ -109,16 +114,13 @@ mod tests {
         let k_points = 3;
         let rng = thread_rng();
         let mut z_points = Polynomial::new(Vec::new());
-        let mut y_points = Polynomial::new(Vec::new());
 
         for _ in 0..k_points {
             let random_num = Fr::random(rng.clone());
-            let eval = Polynomial::eval(&p_committed, random_num);
-            y_points.coeff.push(eval.evaluation);
             z_points.coeff.push(random_num);
         }
 
-        let prover = prover(p_committed, trusted_setup.clone(), z_points, y_points);
+        let prover = prover(p_committed, trusted_setup.clone(), z_points);
         let verifier = verifier(prover);
         assert!(verifier);
     }
