@@ -89,7 +89,7 @@ mod tests {
         let rng = thread_rng();
         let z = Fr::random(rng.clone());
         let trusted_setup = trusted_setup(p_committed.clone());
-        let prover = prover(p_committed.clone(), z, trusted_setup.clone());
+        let prover = prover(p_committed, z, trusted_setup.clone());
         let verifier = verifier(prover, z, trusted_setup);
         assert!(verifier);
     }

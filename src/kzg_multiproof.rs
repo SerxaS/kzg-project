@@ -23,15 +23,17 @@ struct MultiProof {
 ///In other words, this polynomial will be divisible by:
 ///(X - z_0), (X - z_1), ... , (X - z_k-1).
 ///Using the zero polynomial "Z(X)", we can again establish a similar relationship that we did before in "kzg":  
-fn prover(p_committed: Polynomial, trusted_setup: TrustedSetup, k_points: u32) -> MultiProof {
-    let eval_of_z_points = Polynomial::eval_of_z_points(&p_committed, k_points);
-    let interpolation_polynomial =
-        Polynomial::lagrange(&p_committed, eval_of_z_points.clone(), k_points);
+fn prover(
+    p_committed: Polynomial,
+    trusted_setup: TrustedSetup,
+    z_points: Polynomial,
+    y_points: Polynomial,
+) -> MultiProof {
+    let interpolation_polynomial = Polynomial::lagrange(&p_committed, z_points.clone(), y_points);
     let mut zero_polynomial = Polynomial::new(vec![Fr::one()]);
 
-    for i in 0..eval_of_z_points.0.coeff.len() {
-        let zero_polynomial_values =
-            Polynomial::new(vec![eval_of_z_points.0.coeff[i].neg(), Fr::one()]);
+    for i in 0..z_points.coeff.len() {
+        let zero_polynomial_values = Polynomial::new(vec![z_points.coeff[i].neg(), Fr::one()]);
         zero_polynomial = zero_polynomial_values.mul_poly(zero_polynomial.coeff);
     }
 
@@ -94,12 +96,29 @@ fn verifier(proof: MultiProof) -> bool {
 mod tests {
     use crate::kzg_multiproof::{prover, verifier};
     use crate::kzg_tools::{polynomial::Polynomial, trusted_setup::trusted_setup};
+    use halo2::arithmetic::Field;
+    use halo2::halo2curves::bn256::Fr;
+    use rand::thread_rng;
 
     #[test]
     fn kzg_multiproof_test() {
         let p_committed = Polynomial::create_polynomial(7);
         let trusted_setup = trusted_setup(p_committed.clone());
-        let prover = prover(p_committed, trusted_setup.clone(), 3);
+
+        //Evaluate committed polynomial at determined number of points(signatures).
+        let k_points = 3;
+        let rng = thread_rng();
+        let mut z_points = Polynomial::new(Vec::new());
+        let mut y_points = Polynomial::new(Vec::new());
+
+        for _ in 0..k_points {
+            let random_num = Fr::random(rng.clone());
+            let eval = Polynomial::eval(&p_committed, random_num);
+            y_points.coeff.push(eval.evaluation);
+            z_points.coeff.push(random_num);
+        }
+
+        let prover = prover(p_committed, trusted_setup.clone(), z_points, y_points);
         let verifier = verifier(prover);
         assert!(verifier);
     }

@@ -159,24 +159,20 @@ impl Polynomial {
     }
 
     ///Lagrange Interpolation Method.  
-    pub fn lagrange(&self, eval_of_z_points: (Self, Self), k_points: u32) -> Self {
+    pub fn lagrange(&self, z_points: Self, y_points: Self) -> Self {
         let mut interpolate_polynomial = Polynomial::new(Vec::new());
 
-        for i in 0..eval_of_z_points.0.coeff.len() {
+        for i in 0..z_points.coeff.len() {
             let numerator = Polynomial::new(vec![Fr::one()]);
             let denominator = Polynomial::new(vec![Fr::one()]);
-            let mut term = Polynomial::new(vec![eval_of_z_points.1.coeff[i]]);
+            let mut term = Polynomial::new(vec![y_points.coeff[i]]);
 
-            for j in 0..eval_of_z_points.0.coeff.len() {
+            for j in 0..z_points.coeff.len() {
                 if j != i {
-                    let mut num = numerator.mul_poly(
-                        Polynomial::new(vec![eval_of_z_points.0.coeff[j].neg(), Fr::one()]).coeff,
-                    );
+                    let mut num = numerator
+                        .mul_poly(Polynomial::new(vec![z_points.coeff[j].neg(), Fr::one()]).coeff);
                     let den = denominator.mul_poly(
-                        Polynomial::new(vec![
-                            eval_of_z_points.0.coeff[i] - eval_of_z_points.0.coeff[j],
-                        ])
-                        .coeff,
+                        Polynomial::new(vec![z_points.coeff[i] - z_points.coeff[j]]).coeff,
                     );
                     term = term.mul_poly((num.div_poly(den.coeff).0).coeff);
                 }
