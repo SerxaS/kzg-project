@@ -24,7 +24,8 @@ struct Proof {
 ///a proof pi(π), along with his claim p(z) = y. The point z will be selected
 ///by the verifier, and sent to the prover after the prover sends his commitment
 ///C = [p(s)], which is a commitment to the polynomial p(X).
-fn prover(p_committed: Polynomial, z: Fr, trusted_setup: TrustedSetup) -> Proof {
+fn prover(polynomial_degree: u32, z: Fr, trusted_setup: TrustedSetup) -> Proof {
+    let p_committed = Polynomial::create_polynomial(polynomial_degree);
     let y = Polynomial::eval(&p_committed, z);
     let mut num: Polynomial = Polynomial::new(Vec::new());
     let num_sub = p_committed.coeff[0] - (y.evaluation);
@@ -85,11 +86,12 @@ mod tests {
 
     #[test]
     fn kzg_test() {
-        let p_committed = Polynomial::create_polynomial(7);
+        //Create a polynomial with given degree.
+        let polynomial_degree = 7;
         let rng = thread_rng();
         let z = Fr::random(rng.clone());
-        let trusted_setup = trusted_setup(p_committed.clone());
-        let prover = prover(p_committed, z, trusted_setup.clone());
+        let trusted_setup = trusted_setup(polynomial_degree.clone());
+        let prover = prover(polynomial_degree, z, trusted_setup.clone());
         let verifier = verifier(prover, z, trusted_setup);
         assert!(verifier);
     }

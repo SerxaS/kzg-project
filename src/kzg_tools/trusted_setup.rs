@@ -15,18 +15,18 @@ pub struct TrustedSetup {
 ///Using an MPC setup(Trusted Setup), the secret s is generated, and using this secret value,
 ///two sets will be distributed publicly, one for [s^i]_1, and one for [s^i]_2 .
 ///The secret s is then discarded forever.
-pub fn trusted_setup(polynomial: Polynomial) -> TrustedSetup {
+pub fn trusted_setup(polynomial_degree: u32) -> TrustedSetup {
     let rng = thread_rng();
     let trusted_s = Fr::random(rng.clone());
     let mut s_g1 = Vec::new();
     let mut s_g2 = Vec::new();
 
-    for i in 0..polynomial.coeff.len() {
+    for i in 0..polynomial_degree + 1 {
         let trusted_s_g1 = G1::generator().mul(pow(trusted_s, i.try_into().unwrap()).evaluation);
         s_g1.push(trusted_s_g1);
     }
 
-    for i in 0..polynomial.coeff.len() {
+    for i in 0..polynomial_degree + 1 {
         let trusted_s_g2 = G2::generator().mul(pow(trusted_s, i.try_into().unwrap()).evaluation);
         s_g2.push(trusted_s_g2);
     }

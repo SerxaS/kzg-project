@@ -23,22 +23,19 @@ struct MultiProof {
 ///In other words, this polynomial will be divisible by:
 ///(X - z_0), (X - z_1), ... , (X - z_k-1).
 ///Using the zero polynomial "Z(X)", we can again establish a similar relationship that we did before in "kzg":  
-fn prover(
-    p_committed: Polynomial,
-    trusted_setup: TrustedSetup,
-    z_points: Polynomial,
-) -> MultiProof {
-    let mut y_points = Polynomial::new(Vec::new());
+fn prover(polynomial_degree: u32, trusted_setup: TrustedSetup, z_points: Vec<Fr>) -> MultiProof {
+    let p_committed = Polynomial::create_polynomial(polynomial_degree);
+    let mut y_points: Vec<Fr> = Vec::new();
 
-    for i in 0..z_points.coeff.len() {
-        let eval = Polynomial::eval(&p_committed, z_points.coeff[i]);
-        y_points.coeff.push(eval.evaluation);
+    for i in 0..z_points.len() {
+        let eval = Polynomial::eval(&p_committed, z_points[i]);
+        y_points.push(eval.evaluation);
     }
     let interpolation_polynomial = Polynomial::lagrange(&p_committed, z_points.clone(), y_points);
     let mut zero_polynomial = Polynomial::new(vec![Fr::one()]);
 
-    for i in 0..z_points.coeff.len() {
-        let zero_polynomial_values = Polynomial::new(vec![z_points.coeff[i].neg(), Fr::one()]);
+    for i in 0..z_points.len() {
+        let zero_polynomial_values = Polynomial::new(vec![z_points[i].neg(), Fr::one()]);
         zero_polynomial = zero_polynomial_values.mul_poly(zero_polynomial.coeff);
     }
 
@@ -107,20 +104,21 @@ mod tests {
 
     #[test]
     fn kzg_multiproof_test() {
-        let p_committed = Polynomial::create_polynomial(7);
-        let trusted_setup = trusted_setup(p_committed.clone());
+        //Create a polynomial with given degree.
+        let polynomial_degree = 7;
+        let trusted_setup = trusted_setup(polynomial_degree);
 
         //Evaluate committed polynomial at determined number of points(signatures).
         let k_points = 3;
         let rng = thread_rng();
-        let mut z_points = Polynomial::new(Vec::new());
+        let mut z_points: Vec<Fr> = Vec::new();
 
         for _ in 0..k_points {
             let random_num = Fr::random(rng.clone());
-            z_points.coeff.push(random_num);
+            z_points.push(random_num);
         }
 
-        let prover = prover(p_committed, trusted_setup.clone(), z_points);
+        let prover = prover(polynomial_degree, trusted_setup.clone(), z_points);
         let verifier = verifier(prover);
         assert!(verifier);
     }
