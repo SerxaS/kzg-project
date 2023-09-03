@@ -1,4 +1,4 @@
-use super::polynomial::{pow, Polynomial};
+use super::polynomial::pow;
 use halo2::{
     arithmetic::Field,
     halo2curves::bn256::{Fr, G1, G2},

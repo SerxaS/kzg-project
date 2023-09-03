@@ -97,7 +97,7 @@ fn verifier(proof: MultiProof) -> bool {
 #[cfg(test)]
 mod tests {
     use crate::kzg_multiproof::{prover, verifier};
-    use crate::kzg_tools::{polynomial::Polynomial, trusted_setup::trusted_setup};
+    use crate::kzg_tools::trusted_setup::trusted_setup;
     use halo2::arithmetic::Field;
     use halo2::halo2curves::bn256::Fr;
     use rand::thread_rng;
