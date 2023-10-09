@@ -1,3 +1,4 @@
+use crate::kzg_tools::evaluation::Evaluation;
 use core::fmt;
 use halo2::{
     arithmetic::Field,
@@ -16,6 +17,14 @@ impl Polynomial {
         Self { coeff }
     }
 
+    ///Takes degree of polynomial and creates a polynomial with random coefficients.
+    pub fn create_polynomial(degree: u32) -> Self {
+        let rng = thread_rng();
+        let random_coeff =
+            Polynomial::new((0..degree + 1).map(|_| Fr::random(rng.clone())).collect());
+        random_coeff
+    }
+
     ///Evaluates polynomial in the field.
     pub fn eval(&self, val: Fr) -> Evaluation {
         let mut eval = Fr::zero();
@@ -24,23 +33,6 @@ impl Polynomial {
             eval += (Evaluation::new(*j).mul(&pow(val, i.try_into().unwrap()))).evaluation
         }
         Evaluation::new(eval)
-    }
-
-    ///Calculate required roots of unity.
-    pub fn rou(&self) -> Evaluation {
-        let mut len = self.coeff.len();
-        let mut rou = Evaluation::new(<Fr as PrimeField>::ROOT_OF_UNITY);
-        let mut counter = 0;
-
-        while len / 2 >= 1 {
-            len = len / 2;
-            counter += 1;
-        }
-
-        for _ in 0..(28 - counter) {
-            rou.evaluation = rou.evaluation.square();
-        }
-        rou
     }
 
     ///Polynomial addition.
@@ -52,7 +44,6 @@ impl Polynomial {
         } else {
             len += rhs.len();
         }
-
         let mut sum_poly = Polynomial::new(vec![Fr::zero(); len]);
 
         for (i, _) in self.coeff.iter().enumerate() {
@@ -92,7 +83,6 @@ impl Polynomial {
         if den.len() > self.coeff.len() {
             return (Self::new(vec![Fr::zero()]), self.clone());
         }
-
         let diff = self.coeff.len() - den.len();
         let mut quotient = Polynomial::new(vec![Fr::zero(); diff + 1]);
 
@@ -113,7 +103,6 @@ impl Polynomial {
                 break;
             }
         }
-
         let remainder = self.clone();
         (quotient, remainder)
     }
@@ -131,16 +120,21 @@ impl Polynomial {
         mul_poly
     }
 
-    ///Takes degree of polynomial and creates a polynomial with random coefficients.
-    pub fn create_polynomial(degree: u32) -> Self {
-        let rng = thread_rng();
-        let mut random_coeff = Polynomial::new(Vec::new());
+    ///Calculate required roots of unity.
+    pub fn rou(&self) -> Evaluation {
+        let mut len = self.coeff.len();
+        let mut rou = Evaluation::new(PrimeField::ROOT_OF_UNITY);
+        let mut counter = 0;
 
-        for _ in 0..(degree + 1) {
-            let random_num = Fr::random(rng.clone());
-            random_coeff.coeff.push(random_num)
+        while len / 2 >= 1 {
+            len = len / 2;
+            counter += 1;
         }
-        random_coeff
+
+        for _ in 0..(28 - counter) {
+            rou.evaluation = rou.evaluation.square();
+        }
+        rou
     }
 
     ///Evaluate committed polynomial at determined number of points(signatures).
@@ -195,32 +189,6 @@ impl Display for Polynomial {
     }
 }
 
-pub struct Evaluation {
-    pub(crate) evaluation: Fr,
-}
-
-impl Evaluation {
-    pub fn new(evaluation: Fr) -> Self {
-        Self { evaluation }
-    }
-
-    pub fn add(&self, rhs: Self) -> Self {
-        Evaluation::new(self.evaluation + rhs.evaluation)
-    }
-
-    pub fn sub(&self, rhs: Self) -> Self {
-        Evaluation::new(self.evaluation - rhs.evaluation)
-    }
-
-    pub fn mul(&self, rhs: &Self) -> Self {
-        Evaluation::new(self.evaluation * rhs.evaluation)
-    }
-
-    pub fn div(&self, divider: Self) -> Self {
-        Evaluation::new(self.evaluation * divider.evaluation.invert().unwrap())
-    }
-}
-
 ///Calculate exponent of a number as field element.
 pub fn pow(base: Fr, exp: usize) -> Evaluation {
     let mut mul = Fr::one();
@@ -229,49 +197,4 @@ pub fn pow(base: Fr, exp: usize) -> Evaluation {
         mul *= base
     }
     Evaluation { evaluation: mul }
-}
-
-pub struct PolynomialU32 {
-    pub(crate) coeff: Vec<u32>,
-}
-
-impl PolynomialU32 {
-    pub fn new(coeff: Vec<u32>) -> Self {
-        Self { coeff }
-    }
-
-    ///Evaluates polynomial.
-    pub fn eval(&self, val: u32) -> u32 {
-        let mut eval = 0;
-
-        for (i, j) in self.coeff.iter().enumerate() {
-            eval += j * (val.pow(i.try_into().unwrap()));
-        }
-        eval
-    }
-
-    ///Converts polynomial to the corresponding field elements.
-    pub fn p_to_fr(&self) -> Polynomial {
-        let mut vec = Polynomial::new(Vec::new());
-
-        for i in self.coeff.iter() {
-            let p_fr = i;
-            let p_fr = Fr::from_u128((*p_fr).into());
-            vec.coeff.push(p_fr);
-        }
-        vec
-    }
-}
-
-///Shows polynomial in the string form.
-impl Display for PolynomialU32 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let result: Vec<String> = self
-            .coeff
-            .iter()
-            .enumerate()
-            .map(|(i, c)| format!("({:?})x^{}", c, i))
-            .collect();
-        write!(f, "{}", result.join(" + "))
-    }
 }

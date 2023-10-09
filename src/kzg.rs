@@ -6,8 +6,7 @@
 ///I made use of "KZG polynomial commitments" from
 ///https://dankradfeist.de/ethereum/2020/06/16/kate-polynomial-commitments.html"
 use crate::kzg_tools::{
-    polynomial::{Evaluation, Polynomial},
-    trusted_setup::TrustedSetup,
+    evaluation::Evaluation, polynomial::Polynomial, trusted_setup::TrustedSetup,
 };
 use halo2::halo2curves::{
     bn256::{pairing, Fr, G1Affine, G1, G2},
@@ -34,27 +33,22 @@ fn prover(polynomial_degree: u32, z: Fr, trusted_setup: TrustedSetup) -> Proof {
     for i in p_committed.coeff.iter().skip(1) {
         num.coeff.push(*i);
     }
-
     let mut den = Vec::new();
     den.push(z.neg());
     den.push(Fr::one());
-
     let q_x = Polynomial::div_poly(&mut num, den).0;
     let mut pi = G1::generator() * Fr::zero();
 
     for i in 0..q_x.coeff.len() {
         pi += trusted_setup.s_g1[i] * q_x.coeff[i];
     }
-
     let mut polynomial_commitment = G1::generator() * Fr::zero();
 
     for i in 0..p_committed.coeff.len() {
         polynomial_commitment += trusted_setup.s_g1[i] * p_committed.coeff[i];
     }
-
     let polynomial_commitment_aff = polynomial_commitment.to_affine();
     let pi_aff = pi.to_affine();
-
     let proof = Proof {
         polynomial_commitment: polynomial_commitment_aff,
         quotient_commitment: pi_aff,
@@ -63,8 +57,8 @@ fn prover(polynomial_degree: u32, z: Fr, trusted_setup: TrustedSetup) -> Proof {
     proof
 }
 
-///The verifier checks the equation: (pi, [s - z]_2) = e(C - [y]_1, H) with pairing and
-///if the equation holds, the verifier accepts the proof.
+///The verifier checks the equation: (pi, [s - z]_2) = e(C - [y]_1, H)
+///with pairing and if the equation holds, the verifier accepts the proof.
 fn verifier(proof: Proof, z: Fr, trusted_setup: TrustedSetup) -> bool {
     let y_g1_aff = (G1::generator() * proof.y.evaluation).to_affine();
     let c_y = (proof.polynomial_commitment - y_g1_aff).to_affine();
@@ -80,7 +74,7 @@ fn verifier(proof: Proof, z: Fr, trusted_setup: TrustedSetup) -> bool {
 #[cfg(test)]
 mod tests {
     use crate::kzg::{prover, verifier, Fr};
-    use crate::kzg_tools::{polynomial::Polynomial, trusted_setup::trusted_setup};
+    use crate::kzg_tools::trusted_setup::trusted_setup;
     use halo2::arithmetic::Field;
     use rand::thread_rng;
 
@@ -90,7 +84,7 @@ mod tests {
         let polynomial_degree = 7;
         let rng = thread_rng();
         let z = Fr::random(rng.clone());
-        let trusted_setup = trusted_setup(polynomial_degree.clone());
+        let trusted_setup = trusted_setup(polynomial_degree);
         let prover = prover(polynomial_degree, z, trusted_setup.clone());
         let verifier = verifier(prover, z, trusted_setup);
         assert!(verifier);

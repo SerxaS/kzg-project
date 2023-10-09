@@ -1,12 +1,15 @@
-use super::polynomial::{pow, Evaluation, Polynomial};
+use super::{
+    evaluation::Evaluation,
+    polynomial::{pow, Polynomial},
+};
 use crate::kzg_tools::fft::fft;
 use halo2::{
     arithmetic::Field,
     halo2curves::{bn256::Fr, ff::PrimeField},
 };
 
-///Taking a set of evaluations of a polynomial and
-///using that directly to compute an evaluation at a different point.
+///Taking a set of evaluations of a polynomial and using that directly to compute
+///an evaluation at a different point.
 pub(crate) fn barycentric(polynomial: Polynomial, rou: Fr, x: Fr) -> Evaluation {
     let len = polynomial.coeff.len();
     //Evaluate polynomial at (degree + 1) points using FFT Algorithm.
@@ -20,7 +23,6 @@ pub(crate) fn barycentric(polynomial: Polynomial, rou: Fr, x: Fr) -> Evaluation 
         let divide_res = y_i_mul_w_i.div(Evaluation::new(x).sub(w_i));
         right_res.coeff.push(divide_res.evaluation);
     }
-
     let mut sum_res = Evaluation::new(Fr::zero());
 
     for i in right_res.coeff {
