@@ -38,36 +38,30 @@ fn prover(polynomial_degree: u32, trusted_setup: TrustedSetup, z_points: Vec<Fr>
         let zero_polynomial_values = Polynomial::new(vec![z_points[i].neg(), Fr::one()]);
         zero_polynomial = zero_polynomial_values.mul_poly(zero_polynomial.coeff);
     }
-
     let mut zero_polynomial_commitment = G2::generator() * Fr::zero();
 
     for i in 0..zero_polynomial.coeff.len() {
         zero_polynomial_commitment += trusted_setup.s_g2[i] * zero_polynomial.coeff[i];
     }
-
     let quotient_polynomial = (p_committed.sub_poly(interpolation_polynomial.coeff.clone()))
         .div_poly(zero_polynomial.coeff)
         .0;
-
     let mut quotient_commitment = G1::generator() * Fr::zero();
 
     for i in 0..quotient_polynomial.coeff.len() {
         quotient_commitment += trusted_setup.s_g1[i] * quotient_polynomial.coeff[i];
     }
-
     let mut polynomial_commitment = G1::generator() * Fr::zero();
 
     for i in 0..p_committed.coeff.len() {
         polynomial_commitment += trusted_setup.s_g1[i] * p_committed.coeff[i];
     }
-
     let mut interpolation_polynomial_commitment = G1::generator() * Fr::zero();
 
     for i in 0..interpolation_polynomial.coeff.len() {
         interpolation_polynomial_commitment +=
             trusted_setup.s_g1[i] * interpolation_polynomial.coeff[i];
     }
-
     let polynomial_commitment_aff = polynomial_commitment.to_affine();
     let quotient_commitment_aff = quotient_commitment.to_affine();
     let zero_polynomial_commitment_aff = zero_polynomial_commitment.to_affine();
@@ -107,7 +101,6 @@ mod tests {
         //Create a polynomial with given degree.
         let polynomial_degree = 7;
         let trusted_setup = trusted_setup(polynomial_degree);
-
         //Evaluate committed polynomial at determined number of points(signatures).
         let k_points = 3;
         let rng = thread_rng();
@@ -117,7 +110,6 @@ mod tests {
             let random_num = Fr::random(rng.clone());
             z_points.push(random_num);
         }
-
         let prover = prover(polynomial_degree, trusted_setup.clone(), z_points);
         let verifier = verifier(prover);
         assert!(verifier);

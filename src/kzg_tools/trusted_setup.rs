@@ -12,8 +12,9 @@ pub struct TrustedSetup {
     pub s_g2: Vec<G2>,
 }
 
-///Using an MPC setup(Trusted Setup), the secret s is generated, and using this secret value,
-///two sets will be distributed publicly, one for [s^i]_1, and one for [s^i]_2 .
+///The secret s is generated from random number but in practice this is usually
+///implemented via a secure multiparty computation (MPC).
+///Two sets will be distributed publicly, one for [s^i]_1, and one for [s^i]_2 .
 ///The secret s is then discarded forever.
 pub fn trusted_setup(polynomial_degree: u32) -> TrustedSetup {
     let rng = thread_rng();
