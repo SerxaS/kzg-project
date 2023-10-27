@@ -8,16 +8,16 @@ use halo2::{
     halo2curves::{bn256::Fr, ff::PrimeField},
 };
 
-///Taking a set of evaluations of a polynomial and using that directly to compute
-///an evaluation at a different point.
+/// Taking a set of evaluations of a polynomial and using that directly to compute
+/// an evaluation at a different point.
 pub(crate) fn barycentric(polynomial: Polynomial, rou: Fr, x: Fr) -> Evaluation {
     let len = polynomial.coeff.len();
-    //Evaluate polynomial at (degree + 1) points using FFT Algorithm.
+    // Evaluate polynomial at (degree + 1) points using FFT Algorithm.
     let eval = fft(polynomial, rou);
     let mut right_res = Polynomial::new(Vec::new());
 
     for (i, j) in eval.coeff.iter().enumerate() {
-        //Right side of equation.
+        // Right side of equation.
         let w_i = pow(rou, i);
         let y_i_mul_w_i = Evaluation::new(*j).mul(&w_i);
         let divide_res = y_i_mul_w_i.div(Evaluation::new(x).sub(w_i));
@@ -29,7 +29,7 @@ pub(crate) fn barycentric(polynomial: Polynomial, rou: Fr, x: Fr) -> Evaluation 
         sum_res.evaluation += i;
     }
 
-    //Left side of equation.
+    // Left side of equation.
     let x_n = pow(x, len).sub(Evaluation::new(Fr::one()));
     let n = Evaluation::new(Fr::from_u128(len.try_into().unwrap()));
     let left_res = x_n.mul(&Evaluation::new(n.evaluation.invert().unwrap()));

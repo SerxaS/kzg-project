@@ -1,5 +1,5 @@
-///We can evaluate a polynomial at any number of points and prove it,
-///using still only one group element.
+/// We can evaluate a polynomial at any number of points and prove it,
+/// using still only one group element.
 use crate::kzg_tools::{polynomial::Polynomial, trusted_setup::TrustedSetup};
 use halo2::halo2curves::{
     bn256::{pairing, Fr, G1Affine, G2Affine, G1, G2},
@@ -13,16 +13,16 @@ struct MultiProof {
     zero_polynomial_commitment: G2Affine,
 }
 
-///Say we want to prove the evaluation of k points:
-///(z_0, y_0), (z_1, y_1),..., (z_k-1, y_k-1).
-///Using an interpolation polynomial "I(X)", we can find a polynomial
-///of degree less than k, that goes through all these points.
-///Using Lagrange interpolation, we can compute this interpolation polynomial.
-///Since our original polynomial p(X) is passing through all these points,
-///the polynomial p(X) - I(X) will be zero at each z_0, z_1, ... , z_k-1.
-///In other words, this polynomial will be divisible by:
-///(X - z_0), (X - z_1), ... , (X - z_k-1).
-///Using the zero polynomial "Z(X)", we can again establish a similar relationship that we did before in "kzg":  
+/// Say we want to prove the evaluation of k points:
+/// (z_0, y_0), (z_1, y_1),..., (z_k-1, y_k-1).
+/// Using an interpolation polynomial "I(X)", we can find a polynomial
+/// of degree less than k, that goes through all these points.
+/// Using Lagrange interpolation, we can compute this interpolation polynomial.
+/// Since our original polynomial p(X) is passing through all these points,
+/// the polynomial p(X) - I(X) will be zero at each z_0, z_1, ... , z_k-1.
+/// In other words, this polynomial will be divisible by:
+/// (X - z_0), (X - z_1), ... , (X - z_k-1).
+/// Using the zero polynomial "Z(X)", we can again establish a similar relationship that we did before in "kzg":  
 fn prover(polynomial_degree: u32, trusted_setup: TrustedSetup, z_points: Vec<Fr>) -> MultiProof {
     let p_committed = Polynomial::create_polynomial(polynomial_degree);
     let mut y_points: Vec<Fr> = Vec::new();
@@ -75,7 +75,7 @@ fn prover(polynomial_degree: u32, trusted_setup: TrustedSetup, z_points: Vec<Fr>
     proof
 }
 
-///The equation the verifier needs to check is: e(pi, [Z(s)]_2) = e(C - [I(s)]_1, H)
+/// The equation the verifier needs to check is: e(pi, [Z(s)]_2) = e(C - [I(s)]_1, H)
 fn verifier(proof: MultiProof) -> bool {
     let poly_com_sub_int =
         (proof.polynomial_commitment - proof.interpolation_polynomial_commitment).to_affine();
@@ -98,11 +98,15 @@ mod tests {
 
     #[test]
     fn kzg_multiproof_test() {
-        //Create a polynomial with given degree.
+        // Create a polynomial with given degree.
         let polynomial_degree = 7;
         let trusted_setup = trusted_setup(polynomial_degree);
-        //Evaluate committed polynomial at determined number of points(signatures).
-        let k_points = 3;
+        // Evaluate committed polynomial at determined number of points(signatures).
+        let k_points = 8;
+        assert!(
+            k_points < polynomial_degree,
+            "Polynomial degree must be bigger than k_points!"
+        );
         let rng = thread_rng();
         let mut z_points: Vec<Fr> = Vec::new();
 

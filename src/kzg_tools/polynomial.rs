@@ -17,7 +17,7 @@ impl Polynomial {
         Self { coeff }
     }
 
-    ///Takes degree of polynomial and creates a polynomial with random coefficients.
+    /// Takes degree of polynomial and creates a polynomial with random coefficients.
     pub fn create_polynomial(degree: u32) -> Self {
         let rng = thread_rng();
         let random_coeff =
@@ -25,7 +25,7 @@ impl Polynomial {
         random_coeff
     }
 
-    ///Evaluates polynomial in the field.
+    /// Evaluates polynomial in the field.
     pub fn eval(&self, val: Fr) -> Evaluation {
         let mut eval = Fr::zero();
 
@@ -35,7 +35,7 @@ impl Polynomial {
         Evaluation::new(eval)
     }
 
-    ///Polynomial addition.
+    /// Polynomial addition.
     pub fn add_poly(&self, rhs: Vec<Fr>) -> Self {
         let mut len = 0;
 
@@ -56,7 +56,7 @@ impl Polynomial {
         sum_poly
     }
 
-    ///Polynomial subtraction.
+    /// Polynomial subtraction.
     pub fn sub_poly(&self, rhs: Vec<Fr>) -> Self {
         let mut len = 0;
 
@@ -78,7 +78,7 @@ impl Polynomial {
         sub_poly
     }
 
-    ///Polynomial long division.
+    /// Polynomial long division.
     pub fn div_poly(&mut self, den: Vec<Fr>) -> (Self, Self) {
         if den.len() > self.coeff.len() {
             return (Self::new(vec![Fr::zero()]), self.clone());
@@ -107,7 +107,7 @@ impl Polynomial {
         (quotient, remainder)
     }
 
-    ///Polynomial multiplication.
+    /// Polynomial multiplication.
     pub fn mul_poly(&self, rhs: Vec<Fr>) -> Self {
         let p_len = self.coeff.len() + rhs.len() - 1;
         let mut mul_poly = Polynomial::new(vec![Fr::zero(); p_len]);
@@ -120,7 +120,7 @@ impl Polynomial {
         mul_poly
     }
 
-    ///Calculate required roots of unity.
+    /// Calculate required roots of unity.
     pub fn rou(&self) -> Evaluation {
         let mut len = self.coeff.len();
         let mut rou = Evaluation::new(PrimeField::ROOT_OF_UNITY);
@@ -137,7 +137,7 @@ impl Polynomial {
         rou
     }
 
-    ///Evaluate committed polynomial at determined number of points(signatures).
+    /// Evaluate committed polynomial at determined number of points(signatures).
     pub fn eval_of_z_points(&self, k_points: u32) -> (Self, Self) {
         let rng = thread_rng();
         let mut z_points = Polynomial::new(Vec::new());
@@ -152,7 +152,7 @@ impl Polynomial {
         (z_points, y_points)
     }
 
-    ///Lagrange Interpolation Method.  
+    /// Lagrange Interpolation Method.  
     pub fn lagrange(&self, z_points: Vec<Fr>, y_points: Vec<Fr>) -> Self {
         let mut interpolate_polynomial = Polynomial::new(Vec::new());
 
@@ -176,7 +176,7 @@ impl Polynomial {
     }
 }
 
-///Shows polynomial in the string form.
+/// Shows polynomial in the string form.
 impl Display for Polynomial {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let result: Vec<String> = self
@@ -189,7 +189,7 @@ impl Display for Polynomial {
     }
 }
 
-///Calculate exponent of a number as field element.
+/// Calculate exponent of a number as field element.
 pub fn pow(base: Fr, exp: usize) -> Evaluation {
     let mut mul = Fr::one();
 

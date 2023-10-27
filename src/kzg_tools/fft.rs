@@ -1,7 +1,7 @@
 use crate::kzg_tools::polynomial::{pow, Polynomial};
 use halo2::halo2curves::bn256::Fr;
 
-///Evaluate polynomial at (degree + 1) points using FFT Algorithm.
+/// Evaluate polynomial at (degree + 1) points using FFT Algorithm.
 pub fn fft(polynomial: Polynomial, rou: Fr) -> Polynomial {
     let len = polynomial.coeff.len();
     let mut fft_values = Polynomial::new(vec![Fr::zero(); len]);
