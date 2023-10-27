@@ -102,7 +102,7 @@ mod tests {
         let polynomial_degree = 7;
         let trusted_setup = trusted_setup(polynomial_degree);
         // Evaluate committed polynomial at determined number of points(signatures).
-        let k_points = 8;
+        let k_points = 3;
         assert!(
             k_points < polynomial_degree,
             "Polynomial degree must be bigger than k_points!"
