@@ -161,13 +161,13 @@ impl Polynomial {
             let denominator = Polynomial::new(vec![Fr::one()]);
             let mut term = Polynomial::new(vec![y_points[i]]);
 
-            for j in 0..z_points.len() {
+           for j in 0..z_points.len() {
                 if j != i {
-                    let mut num = numerator
+                    let mut dividend = numerator
                         .mul_poly(Polynomial::new(vec![z_points[j].neg(), Fr::one()]).coeff);
-                    let den = denominator
+                    let divider = denominator
                         .mul_poly(Polynomial::new(vec![z_points[i] - z_points[j]]).coeff);
-                    term = term.mul_poly((num.div_poly(den.coeff).0).coeff);
+                    term = term.mul_poly((dividend.div_poly(divider.coeff).0).coeff);
                 }
             }
             interpolate_polynomial = term.add_poly(interpolate_polynomial.coeff);
