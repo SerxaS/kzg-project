@@ -1,10 +1,10 @@
-///This scheme is often also called Kate Polynomial Commitment Scheme.
-///As a polynomial commitment scheme, it allows a prover
-///to compute a commitment to a polynomial, with the properties that this
-///commitment can later be opened at any position: The prover shows that
-///the value of the polynomial at a certain position is equal to a claimed value.
-///I made use of "KZG polynomial commitments" from
-///https://dankradfeist.de/ethereum/2020/06/16/kate-polynomial-commitments.html"
+/// This scheme is often also called Kate Polynomial Commitment Scheme.
+/// As a polynomial commitment scheme, it allows a prover
+/// to compute a commitment to a polynomial, with the properties that this
+/// commitment can later be opened at any position: The prover shows that
+/// the value of the polynomial at a certain position is equal to a claimed value.
+/// I made use of "KZG polynomial commitments" from
+/// https://dankradfeist.de/ethereum/2020/06/16/kate-polynomial-commitments.html"
 use crate::kzg_tools::{
     evaluation::Evaluation, polynomial::Polynomial, trusted_setup::TrustedSetup,
 };
@@ -19,10 +19,10 @@ struct Proof {
     y: Evaluation,
 }
 
-///The prover first needs to commit to the polynomial p(X) and then submit
-///a proof pi(π), along with his claim p(z) = y. The point z will be selected
-///by the verifier, and sent to the prover after the prover sends his commitment
-///C = [p(s)], which is a commitment to the polynomial p(X).
+/// The prover first needs to commit to the polynomial p(X) and then submit
+/// a proof pi(π), along with his claim p(z) = y. The point z will be selected
+/// by the verifier, and sent to the prover after the prover sends his commitment
+/// C = [p(s)], which is a commitment to the polynomial p(X).
 fn prover(polynomial_degree: u32, z: Fr, trusted_setup: TrustedSetup) -> Proof {
     let p_committed = Polynomial::create_polynomial(polynomial_degree);
     let y = Polynomial::eval(&p_committed, z);
@@ -57,8 +57,8 @@ fn prover(polynomial_degree: u32, z: Fr, trusted_setup: TrustedSetup) -> Proof {
     proof
 }
 
-///The verifier checks the equation: (pi, [s - z]_2) = e(C - [y]_1, H)
-///with pairing and if the equation holds, the verifier accepts the proof.
+/// The verifier checks the equation: (pi, [s - z]_2) = e(C - [y]_1, H)
+/// with pairing and if the equation holds, the verifier accepts the proof.
 fn verifier(proof: Proof, z: Fr, trusted_setup: TrustedSetup) -> bool {
     let y_g1_aff = (G1::generator() * proof.y.evaluation).to_affine();
     let c_y = (proof.polynomial_commitment - y_g1_aff).to_affine();
@@ -80,7 +80,7 @@ mod tests {
 
     #[test]
     fn kzg_test() {
-        //Create a polynomial with given degree.
+        // Create a polynomial with given degree.
         let polynomial_degree = 7;
         let rng = thread_rng();
         let z = Fr::random(rng.clone());
